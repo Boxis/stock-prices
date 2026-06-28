@@ -1,6 +1,10 @@
 # Generated outputs
 output/
 
+# Scraper HTTP cache and local history DB
+.cache/
+*.db
+
 # Python
 __pycache__/
 *.pyc
