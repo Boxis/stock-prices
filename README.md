@@ -64,6 +64,25 @@ flag_big_moves(prices, top_n=5)    # biggest moves + likely news drivers
 
 See `examples/explore.ipynb` for a runnable walkthrough.
 
+## Web interface
+
+A FastAPI app (in `webapp/`) wraps the same functions in a browser UI.
+
+```bash
+uv run uvicorn webapp.app:app --reload
+# then open http://127.0.0.1:8000
+```
+
+Enter one or more tickers, a **data range** (start → end) for the chart and
+full-range stats, and a separate **investment date** to see returns from that
+date to the end. Optionally enter an **investment amount** (applied per ticker)
+to also see shares bought, end value, and $ gain/loss. The page shows a price
+chart (with a line marking the investment date), the investment-returns table,
+full-range performance, and the news / big-move panel.
+
+The form submits via GET, so result URLs are shareable, e.g.
+`/?tickers=AAPL,MSFT&start=2026-01-01&invest_date=2026-03-01&amount=10000`.
+
 ## Notes & limitations
 
 - Returns use **adjusted close**, so dividends and splits are included.
@@ -80,7 +99,8 @@ See `examples/explore.ipynb` for a runnable walkthrough.
 ## Tests
 
 ```bash
-python tests/test_performance.py     # no network needed
+uv run python tests/test_performance.py    # performance math, no network
+uv run python tests/test_investment.py     # investment returns, no network
 # or, if pytest is installed:
-pytest
+uv run pytest
 ```

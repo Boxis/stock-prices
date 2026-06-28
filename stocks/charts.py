@@ -17,6 +17,7 @@ def plot_prices(
     save_path: str | None = None,
     title: str | None = None,
     show: bool = False,
+    marker_date=None,
 ):
     """Plot adjusted close over time for each ticker in ``prices``.
 
@@ -29,6 +30,9 @@ def plot_prices(
         If given, the figure is written to this path (PNG).
     show : bool
         If True, call ``plt.show()`` (useful for interactive sessions).
+    marker_date : str or date, optional
+        If given, draw a vertical dashed line at this date (e.g. the investment
+        date).
 
     Returns the matplotlib ``Figure``.
     """
@@ -40,6 +44,20 @@ def plot_prices(
         if normalize and len(y) and y.iloc[0]:
             y = y / y.iloc[0] * 100.0
         ax.plot(g["date"], y, label=sym, linewidth=1.5)
+
+    if marker_date is not None:
+        marker = pd.Timestamp(marker_date)
+        ax.axvline(marker, color="gray", linestyle="--", linewidth=1.2)
+        ax.annotate(
+            f"invested {marker.date()}",
+            xy=(marker, ax.get_ylim()[1]),
+            xytext=(4, -10),
+            textcoords="offset points",
+            fontsize=8,
+            color="gray",
+            rotation=90,
+            va="top",
+        )
 
     ax.set_xlabel("Date")
     ax.set_ylabel("Price rebased to 100" if normalize else "Adjusted close")

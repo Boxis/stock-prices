@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Stock Prices &amp; News</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Stock Prices &amp; News</h1>
+    <p class="sub">Free data via Yahoo Finance. Enter tickers and a date range,
+      then an investment date to see returns from that date to the end.</p>
+
+    <form method="get" action="/" class="card">
+      <div class="grid">
+        <label class="full">
+          Tickers <span class="hint">(comma or space separated)</span>
+          <input type="text" name="tickers" value="{{ form.tickers }}"
+                 placeholder="AAPL, MSFT, NVDA" autofocus />
+        </label>
+
+        <label>
+          Data start
+          <input type="date" name="start" value="{{ form.start }}" max="{{ today }}" />
+        </label>
+        <label>
+          Data end
+          <input type="date" name="end" value="{{ form.end }}" max="{{ today }}" />
+        </label>
+
+        <label>
+          Investment date
+          <input type="date" name="invest_date" value="{{ form.invest_date }}" max="{{ today }}" />
+        </label>
+        <label>
+          Investment amount <span class="hint">(optional, per ticker)</span>
+          <input type="number" name="amount" value="{{ form.amount }}"
+                 min="0" step="any" placeholder="10000" />
+        </label>
+
+        <label>
+          Interval
+          <select name="interval">
+            {% for opt in ["1d", "1wk", "1mo"] %}
+            <option value="{{ opt }}" {% if form.interval == opt %}selected{% endif %}>{{ opt }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          News: top N moves
+          <input type="number" name="news_top_n" value="{{ form.news_top_n }}" min="1" max="20" />
+        </label>
+      </div>
+      <button type="submit">Get report</button>
+    </form>
+
+    {% if errors %}
+    <div class="banner warning">
+      <strong>Heads up:</strong>
+      <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if notes %}
+    <div class="banner note">
+      <ul>{% for n in notes %}<li>{{ n }}</li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    {% if chart %}
+    <section class="card">
+      <h2>Price chart</h2>
+      <img class="chart" src="data:image/png;base64,{{ chart }}" alt="Price chart" />
+      {% if chart_norm %}
+      <h3>Normalized comparison (rebased to 100)</h3>
+      <img class="chart" src="data:image/png;base64,{{ chart_norm }}" alt="Normalized comparison" />
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if invest_html %}
+    <section class="card">
+      <h2>Investment returns
+        <span class="hint">(investment date &rarr; end{% if invest_amount %}, ${{ '%.2f'|format(invest_amount) }} per ticker{% endif %})</span>
+      </h2>
+      {{ invest_html | safe }}
+    </section>
+    {% endif %}
+
+    {% if perf_html %}
+    <section class="card">
+      <h2>Performance over full data range</h2>
+      {{ perf_html | safe }}
+    </section>
+    {% endif %}
+
+    {% if moves_html %}
+    <section class="card">
+      <h2>Largest daily moves &amp; possible drivers</h2>
+      <p class="sub">News is best-effort and recent-leaning; old moves may have no
+        matched headline.</p>
+      {{ moves_html | safe }}
+    </section>
+    {% endif %}
+
+    {% if submitted and not chart and not errors %}
+    <div class="banner note">No data to display for those inputs.</div>
+    {% endif %}
+  </div>
+</body>
+</html>
