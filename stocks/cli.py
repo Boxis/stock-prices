@@ -26,37 +26,15 @@ matplotlib.use("Agg")
 
 import pandas as pd  # noqa: E402
 
+from .format import format_for_display  # noqa: E402
 from .report import build_report  # noqa: E402
-
-_PERCENT_COLUMNS = [
-    "total_return",
-    "cagr",
-    "annualized_volatility",
-    "max_drawdown",
-    "best_day_return",
-    "worst_day_return",
-    "daily_return",
-]
-_DATE_COLUMNS = ["start_date", "end_date", "best_day", "worst_day", "news_date"]
-
 
 def _print_df(df: pd.DataFrame, title: str) -> None:
     print(f"\n=== {title} ===")
     if df is None or df.empty:
         print("(no rows)")
         return
-    display = df.copy()
-    for col in _PERCENT_COLUMNS:
-        if col in display.columns:
-            display[col] = display[col].apply(
-                lambda v: "" if pd.isna(v) else f"{v * 100:.2f}%"
-            )
-    for col in _DATE_COLUMNS:
-        if col in display.columns:
-            display[col] = pd.to_datetime(display[col], errors="coerce").dt.strftime(
-                "%Y-%m-%d"
-            )
-    display = display.fillna("")
+    display = format_for_display(df)
     try:
         from tabulate import tabulate
 

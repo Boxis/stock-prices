@@ -104,3 +104,68 @@ def compute_performance(prices: pd.DataFrame) -> pd.DataFrame:
         for sym, group in prices.groupby("ticker", sort=False)
     ]
     return pd.DataFrame(rows, columns=PERFORMANCE_COLUMNS)
+
+
+INVESTMENT_COLUMNS = [
+    "ticker",
+    "invest_date",
+    "buy_price",
+    "end_date",
+    "end_price",
+    "pct_return",
+    "shares",
+    "invested",
+    "end_value",
+    "gain_loss",
+]
+
+
+def compute_investment_returns(
+    prices: pd.DataFrame, invest_date, amount: float | None = None
+) -> pd.DataFrame:
+    """Return per-ticker performance from ``invest_date`` to the end of data.
+
+    Reuses :func:`compute_performance` on the price slice
+    ``date >= invest_date`` -- its ``total_return`` is exactly the
+    investment-date-to-end return. ``invest_date`` snaps to each ticker's first
+    trading day on or after the requested date.
+
+    If ``amount`` is given, the dollar columns assume that amount is invested in
+    **each** ticker:
+
+    * ``shares`` = amount / buy_price
+    * ``invested`` = amount
+    * ``end_value`` = shares * end_price
+    * ``gain_loss`` = end_value - invested
+
+    Without ``amount`` those four columns are ``NaN`` (percent return only).
+    """
+    if prices.empty:
+        return pd.DataFrame(columns=INVESTMENT_COLUMNS)
+
+    cutoff = pd.Timestamp(invest_date)
+    held = prices[prices["date"] >= cutoff]
+    if held.empty:
+        return pd.DataFrame(columns=INVESTMENT_COLUMNS)
+
+    perf = compute_performance(held)
+    out = perf[
+        ["ticker", "start_date", "start_price", "end_date", "end_price", "total_return"]
+    ].rename(
+        columns={
+            "start_date": "invest_date",
+            "start_price": "buy_price",
+            "total_return": "pct_return",
+        }
+    )
+
+    if amount is not None:
+        out["shares"] = amount / out["buy_price"]
+        out["invested"] = float(amount)
+        out["end_value"] = out["shares"] * out["end_price"]
+        out["gain_loss"] = out["end_value"] - out["invested"]
+    else:
+        for col in ("shares", "invested", "end_value", "gain_loss"):
+            out[col] = np.nan
+
+    return out[INVESTMENT_COLUMNS].reset_index(drop=True)
