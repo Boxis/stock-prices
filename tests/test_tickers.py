@@ -41,6 +41,29 @@ def test_generic_token_false_positive_guarded():
     )[0] == ""
 
 
+def test_industry_word_collisions_guarded():
+    # A different issuer that shares only an industry word must NOT match.
+    assert lookup_ticker("Shares of Cardinal Energy Ltd.")[0] == ""     # not TC Energy
+    assert lookup_ticker("Shares of Arc Resources Ltd.")[0] == ""       # not Cdn Natural Res.
+    assert lookup_ticker("Shares of: Verizon Communications")[0] == ""  # not Rogers
+    assert lookup_ticker("Stocks: Laurentian Bank of Canada")[0] == ""  # not Royal Bank
+    assert lookup_ticker("Gold.")[0] == ""                              # not Barrick Gold
+
+
+def test_geography_word_collision_guarded():
+    # Real estate in a city must not match a bank named after that city.
+    assert lookup_ticker(
+        "Sole ownership of a residential rental unit located in Montreal, Quebec"
+    )[0] == ""  # not Bank of Montreal
+
+
+def test_short_name_omitting_industry_word_still_matches():
+    # The disclosed text often drops the issuer's industry word; still match it.
+    assert lookup_ticker("Shares of Cenovus")[0] == "CVE.TO"
+    assert lookup_ticker("Shares of Suncor Energy Inc.")[0] == "SU.TO"
+    assert lookup_ticker("Shares of TC Energy Corp")[0] == "TRP.TO"
+
+
 def test_annotate_only_asset_categories():
     recs = [
         AssetRecord("CIEC", "p1", "A", "MP", "Code", "d", "t", "", "self",
