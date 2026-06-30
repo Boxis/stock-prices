@@ -32,7 +32,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Disclosure source (Senate to come).")
     p.add_argument("--role", nargs="+", default=["mp"],
                    choices=list(ciec.ROLE_GUIDS.keys()),
-                   help="Roles to scrape (default: mp).")
+                   help="Roles to scrape (default: mp). Only 'mp' itemizes "
+                        "assets; Act roles (minister/poh/gic/staff/parlsec) "
+                        "divest into blind trusts and yield no asset rows.")
     p.add_argument("--limit", type=int, default=None,
                    help="Max people to scrape (for testing / incremental runs).")
     p.add_argument("--name", default=None,
@@ -51,6 +53,15 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     args = build_parser().parse_args(argv)
     scrape_date = date.today().isoformat()
+
+    # Only MPs (Code) publicly itemize holdings. Act roles divest into blind
+    # trusts and publish only a compliance attestation -> no asset rows.
+    act_roles = [r for r in args.role if r != "mp"]
+    if act_roles:
+        print(f"Note: {', '.join(act_roles)} file under the Conflict of Interest "
+              "Act and divest into blind trusts -- their summary statements carry "
+              "no itemized assets, so they contribute no rows. Use --role mp for "
+              "asset data.")
 
     client = PoliteClient(delay=args.delay)
     print(f"Scraping {args.source} for roles={args.role} (limit={args.limit})...")

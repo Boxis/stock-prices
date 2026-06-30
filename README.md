@@ -86,24 +86,31 @@ The form submits via GET, so result URLs are shareable, e.g.
 ## Canadian politician disclosures (`disclosures/`)
 
 Scrapes federal political asset disclosures from the **CIEC public registry**
-([ciec-ccie.parl.gc.ca](https://ciec-ccie.parl.gc.ca/en/public-registry)) —
-Members of Parliament (Conflict of Interest *Code*) and ministers / public
-office holders (Conflict of Interest *Act*) — including spouse/family assets.
-It tracks changes over time and exports an Excel workbook with the asset name,
-best-effort ticker, owner (self/spouse), dates, and active/sold status.
+([ciec-ccie.parl.gc.ca](https://ciec-ccie.parl.gc.ca/en/public-registry)),
+including spouse/family assets. It tracks changes over time and exports an Excel
+workbook with the asset name, best-effort ticker, owner (self/spouse), dates,
+and active/sold status.
+
+**Only Members of Parliament (Conflict of Interest *Code*) publicly itemize
+their holdings.** Everyone under the Conflict of Interest *Act* — ministers,
+GIC appointees, ministerial staff, parliamentary secretaries — must **divest
+tradeable securities into a blind trust**, so their public "summary statement"
+is a divestment attestation with *no itemized assets*. There is therefore
+nothing to scrape for those roles; the asset data all comes from **MPs**
+(~330 of them).
 
 ```bash
 # Scrape a few MPs (polite, cached) and export Excel:
 uv run python -m disclosures.cli --source ciec --role mp --limit 5
 
-# Multiple roles, full run:
-uv run python -m disclosures.cli --source ciec --role mp minister poh \
+# Full MP run (~330 people, polite + cached, a few minutes):
+uv run python -m disclosures.cli --source ciec --role mp \
     --out output/disclosures.xlsx
 ```
 
-Flags: `--role {mp,minister,poh,gic,staff,parlsec}`, `--limit N`,
-`--name <substring>`, `--db <path>`, `--out <xlsx>`, `--delay <seconds>`,
-`--refresh` (ignore cache), `--no-tickers`.
+Flags: `--role mp` (Act roles accepted but yield no itemized assets — see above),
+`--limit N`, `--name <substring>`, `--db <path>`, `--out <xlsx>`,
+`--delay <seconds>`, `--refresh` (ignore cache), `--no-tickers`.
 
 **How tracking works (ongoing monitoring):** each run stores a snapshot in a
 local SQLite history (`output/disclosures.db`) and diffs it against the previous
@@ -114,8 +121,9 @@ The workbook has three sheets: **Assets** (current holdings + sold rows),
 **Events** (purchase/sale log), **People** (roster).
 
 ### Important caveats (not bugs)
-- **Ministers/POHs must divest** publicly traded securities, so they rarely have
-  tickers; the richest stock data is from **MPs**.
+- **Only MPs itemize assets.** Act filers (ministers, GIC appointees, staff,
+  parl. secretaries) divest into blind trusts and publish only a compliance
+  attestation — the tool scrapes them but they contribute **zero asset rows**.
 - Public summaries carry **no dollar values or share counts** — presence + dates
   only.
 - **Sold-date is the detection/disclosure date, not the trade date.**
