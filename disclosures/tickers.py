@@ -112,6 +112,10 @@ _GENERIC_TOKENS = {
     "real", "estate", "development", "properties", "property", "services",
     "service", "systems", "system", "capital", "financial", "fund", "trust",
     "investments", "investment", "enterprises",
+    # Industry words: common across many issuers, so they must not be *required*
+    # to confirm a match (e.g. "Cenovus" == "Cenovus Energy") nor *justify* one
+    # on their own (e.g. "Cardinal Energy" must not become "TC Energy").
+    "energy", "metals", "resources", "communications",
 }
 
 
@@ -121,12 +125,18 @@ def _distinctive_tokens(name: str) -> list[str]:
 
 
 def _match_is_credible(company_name: str, cleaned: str) -> bool:
-    """A distinctive token of the matched company must appear in the asset name."""
+    """Every distinctive token of the matched company must appear in the asset name.
+
+    Requiring *all* distinctive tokens (not just one) is what stops cross-company
+    collisions on a single shared word -- e.g. a "...Real Estate in Montreal"
+    note matching "Bank of Montreal", "Arc Resources" matching "Canadian Natural
+    Resources", or "Gold." matching "Barrick Gold".
+    """
     tokens = _distinctive_tokens(company_name)
     if not tokens:
         return True  # nothing distinctive to verify; fall back to the score
     low = cleaned.lower()
-    return any(t in low for t in tokens)
+    return all(t in low for t in tokens)
 
 
 def _clean_name(asset_name: str) -> str:
@@ -139,10 +149,13 @@ def _clean_name(asset_name: str) -> str:
     return s
 
 
-def lookup_ticker(asset_name: str, min_score: float = 80.0) -> tuple[str, str]:
+def lookup_ticker(asset_name: str, min_score: float = 86.0) -> tuple[str, str]:
     """Return (ticker, confidence) for an asset name; ('', '') if no match.
 
-    confidence is "high" (>=92), "medium" (>=86) or "low" (>=min_score).
+    confidence is "high" (>=92) or "medium" (>=min_score). Matches below
+    ``min_score`` are dropped: at scale they are almost always industry- or
+    geography-word collisions (e.g. an "Energy" company matching "TC Energy"),
+    so a blank is more useful than a wrong ticker.
     """
     cleaned = _clean_name(asset_name)
     if len(cleaned) < 3:
@@ -160,7 +173,7 @@ def lookup_ticker(asset_name: str, min_score: float = 80.0) -> tuple[str, str]:
         return "", ""
     if not _match_is_credible(name, cleaned):
         return "", ""
-    confidence = "high" if score >= 92 else "medium" if score >= 86 else "low"
+    confidence = "high" if score >= 92 else "medium"
     return COMPANY_TICKERS[name], confidence
 
 
