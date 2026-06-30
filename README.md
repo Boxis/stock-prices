@@ -83,6 +83,50 @@ full-range performance, and the news / big-move panel.
 The form submits via GET, so result URLs are shareable, e.g.
 `/?tickers=AAPL,MSFT&start=2026-01-01&invest_date=2026-03-01&amount=10000`.
 
+## Canadian politician disclosures (`disclosures/`)
+
+Scrapes federal political asset disclosures from the **CIEC public registry**
+([ciec-ccie.parl.gc.ca](https://ciec-ccie.parl.gc.ca/en/public-registry)) —
+Members of Parliament (Conflict of Interest *Code*) and ministers / public
+office holders (Conflict of Interest *Act*) — including spouse/family assets.
+It tracks changes over time and exports an Excel workbook with the asset name,
+best-effort ticker, owner (self/spouse), dates, and active/sold status.
+
+```bash
+# Scrape a few MPs (polite, cached) and export Excel:
+uv run python -m disclosures.cli --source ciec --role mp --limit 5
+
+# Multiple roles, full run:
+uv run python -m disclosures.cli --source ciec --role mp minister poh \
+    --out output/disclosures.xlsx
+```
+
+Flags: `--role {mp,minister,poh,gic,staff,parlsec}`, `--limit N`,
+`--name <substring>`, `--db <path>`, `--out <xlsx>`, `--delay <seconds>`,
+`--refresh` (ignore cache), `--no-tickers`.
+
+**How tracking works (ongoing monitoring):** each run stores a snapshot in a
+local SQLite history (`output/disclosures.db`) and diffs it against the previous
+run to log **purchased** / **sold** events. Re-running on a schedule is the
+monitor — a single run only captures current holdings.
+
+The workbook has three sheets: **Assets** (current holdings + sold rows),
+**Events** (purchase/sale log), **People** (roster).
+
+### Important caveats (not bugs)
+- **Ministers/POHs must divest** publicly traded securities, so they rarely have
+  tickers; the richest stock data is from **MPs**.
+- Public summaries carry **no dollar values or share counts** — presence + dates
+  only.
+- **Sold-date is the detection/disclosure date, not the trade date.**
+- Ticker mapping is **best-effort** (curated issuer list + fuzzy match with a
+  confidence flag); real estate, private corporations, and trusts stay blank.
+- **Senators** (separate Senate Ethics Officer site; no spouse data published)
+  are a planned follow-on and not yet scraped.
+
+Scraping is polite: a self-identifying User-Agent, rate limiting, on-disk
+caching, and `robots.txt` is honoured. This is public civic-transparency data.
+
 ## Notes & limitations
 
 - Returns use **adjusted close**, so dividends and splits are included.
